@@ -3,8 +3,6 @@
 A chainable terminal text styling library for MoonBit. Add colors, background
 colors, and text formatting to your terminal output.
 
-[Placeholder for demo image]
-
 ```moonbit
 println(Colored::new("Hello World!").blue())
 println(Colored::new("Hello World!").bg_blue())
@@ -16,6 +14,8 @@ println(Colored::new("Hello World!").hidden())
 println(Colored::new("Hello World!").magenta())
 println(Colored::new("Hello World!").inverse())
 ```
+
+![CleanShot 2025-02-22 at 16 26 02@2x](https://github.com/user-attachments/assets/2f1e6902-772b-4fa2-92b4-90b6d6c56206)
 
 ## Installation
 
