@@ -1,12 +1,12 @@
 ///|
-typealias List[A] = @immut/list.T[A]
+typealias @list.List[A] as List[A]
 
 ///| 
 struct Colored {
   str : String
   bg_color : Color?
   color : Color?
-  formats : @immut/list.T[Format]
+  formats : List[Format]
 }
 
 ///|
@@ -34,62 +34,62 @@ priv enum Color {
 }
 
 ///|
-pub fn output(self : Colored, logger : &Logger) -> Unit {
+pub fn Colored::output(self : Colored, logger : &Logger) -> Unit {
   logger.write_string(self.to_string())
 }
 
 ///|
 pub fn Colored::to_string(self : Colored) -> String {
-  let mut styles = List::Nil
-  match self.color {
-    Some(color) => styles = List::Cons(to_color_code(color), styles)
+  let { str, bg_color, color, formats } = self
+  let mut styles : List[String] = @list.empty()
+  match color {
+    Some(color) => styles = styles.prepend(to_color_code(color))
     None => ()
   }
-  match self.bg_color {
-    Some(bg_color) => styles = List::Cons(to_bg_color_code(bg_color), styles)
+  match bg_color {
+    Some(bg_color) => styles = styles.prepend(to_bg_color_code(bg_color))
     None => ()
   }
-  let mut formats = self.formats
-  loop formats {
-    List::Cons(format, rest) => {
-      formats = rest
-      match format {
-        Bold => styles = List::Cons("1", styles)
-        Underline => styles = List::Cons("4", styles)
-        Blink => styles = List::Cons("5", styles)
-        Inverse => styles = List::Cons("7", styles)
-        Hidden => styles = List::Cons("8", styles)
-        Strikethrough => styles = List::Cons("9", styles)
-        Italic => styles = List::Cons("3", styles)
-      }
+  let mut remaining_formats = formats
+  loop remaining_formats {
+    List::More(format, tail=rest) => {
+      remaining_formats = rest
+      styles = styles.prepend(format_to_code(format))
       continue rest
     }
-    List::Nil => ()
+    List::Empty => ()
   }
-  match styles {
-    List::Cons(_, _) => {
-      let mut ans = "["
-      loop styles {
-        List::Cons(style, rest) => {
-          styles = rest
-          if ans.length() == 0 {
-            ans = style
-          } else {
-            ans = ans + ";" + style
-          }
-          continue rest
-        }
-        List::Nil => ()
+  let mut ans = "["
+  let mut style_count = 0
+  let mut remaining_styles = styles
+  loop remaining_styles {
+    List::More(code, tail=rest) => {
+      remaining_styles = rest
+      if style_count == 0 {
+        ans = ans + code
+      } else {
+        ans = ans + ";" + code
       }
-      ans + "m" + self.str + "[0m"
+      style_count = style_count + 1
+      continue rest
     }
-    List::Nil => self.str
+    List::Empty => ()
+  }
+  if style_count == 0 {
+    str
+  } else {
+    ans + "m" + str + "[0m"
   }
 }
 
 ///|
-fn to_color_code(self : Color) -> String {
-  match self {
+pub impl Show for Colored with output(self, logger) {
+  Colored::output(self, logger)
+}
+
+///|
+fn to_color_code(color : Color) -> String {
+  match color {
     Black => "30"
     Red => "31"
     Green => "32"
@@ -103,8 +103,8 @@ fn to_color_code(self : Color) -> String {
 }
 
 ///|
-fn to_bg_color_code(self : Color) -> String {
-  match self {
+fn to_bg_color_code(color : Color) -> String {
+  match color {
     Black => "40"
     Red => "41"
     Green => "42"
@@ -118,12 +118,25 @@ fn to_bg_color_code(self : Color) -> String {
 }
 
 ///|
-pub fn Colored::new(str : String) -> Colored {
-  { str, bg_color: None, color: None, formats: List::Nil }
+fn format_to_code(format : Format) -> String {
+  match format {
+    Bold => "1"
+    Underline => "4"
+    Blink => "5"
+    Inverse => "7"
+    Hidden => "8"
+    Strikethrough => "9"
+    Italic => "3"
+  }
 }
 
 ///|
-pub fn red(self : Colored) -> Colored {
+pub fn Colored::new(str : String) -> Colored {
+  { str, bg_color: None, color: None, formats: @list.empty() }
+}
+
+///|
+pub fn Colored::red(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
@@ -133,7 +146,7 @@ pub fn red(self : Colored) -> Colored {
 }
 
 ///|
-pub fn bg_red(self : Colored) -> Colored {
+pub fn Colored::bg_red(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: Some(Red),
@@ -143,7 +156,7 @@ pub fn bg_red(self : Colored) -> Colored {
 }
 
 ///|
-pub fn yellow(self : Colored) -> Colored {
+pub fn Colored::yellow(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
@@ -153,7 +166,7 @@ pub fn yellow(self : Colored) -> Colored {
 }
 
 ///|
-pub fn bg_yellow(self : Colored) -> Colored {
+pub fn Colored::bg_yellow(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: Some(Yellow),
@@ -163,7 +176,7 @@ pub fn bg_yellow(self : Colored) -> Colored {
 }
 
 ///|
-pub fn green(self : Colored) -> Colored {
+pub fn Colored::green(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
@@ -173,7 +186,7 @@ pub fn green(self : Colored) -> Colored {
 }
 
 ///|
-pub fn bg_green(self : Colored) -> Colored {
+pub fn Colored::bg_green(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: Some(Green),
@@ -183,7 +196,7 @@ pub fn bg_green(self : Colored) -> Colored {
 }
 
 ///|
-pub fn blue(self : Colored) -> Colored {
+pub fn Colored::blue(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
@@ -193,7 +206,7 @@ pub fn blue(self : Colored) -> Colored {
 }
 
 ///|
-pub fn bg_blue(self : Colored) -> Colored {
+pub fn Colored::bg_blue(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: Some(Blue),
@@ -203,7 +216,7 @@ pub fn bg_blue(self : Colored) -> Colored {
 }
 
 ///|
-pub fn magenta(self : Colored) -> Colored {
+pub fn Colored::magenta(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
@@ -213,7 +226,7 @@ pub fn magenta(self : Colored) -> Colored {
 }
 
 ///|
-pub fn bg_magenta(self : Colored) -> Colored {
+pub fn Colored::bg_magenta(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: Some(Magenta),
@@ -223,7 +236,7 @@ pub fn bg_magenta(self : Colored) -> Colored {
 }
 
 ///|
-pub fn cyan(self : Colored) -> Colored {
+pub fn Colored::cyan(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
@@ -233,7 +246,7 @@ pub fn cyan(self : Colored) -> Colored {
 }
 
 ///|
-pub fn bg_cyan(self : Colored) -> Colored {
+pub fn Colored::bg_cyan(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: Some(Cyan),
@@ -243,7 +256,7 @@ pub fn bg_cyan(self : Colored) -> Colored {
 }
 
 ///|
-pub fn white(self : Colored) -> Colored {
+pub fn Colored::white(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
@@ -253,7 +266,7 @@ pub fn white(self : Colored) -> Colored {
 }
 
 ///|
-pub fn bg_white(self : Colored) -> Colored {
+pub fn Colored::bg_white(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: Some(White),
@@ -263,7 +276,7 @@ pub fn bg_white(self : Colored) -> Colored {
 }
 
 ///|
-pub fn black(self : Colored) -> Colored {
+pub fn Colored::black(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
@@ -273,7 +286,7 @@ pub fn black(self : Colored) -> Colored {
 }
 
 ///|
-pub fn bg_black(self : Colored) -> Colored {
+pub fn Colored::bg_black(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: Some(Black),
@@ -283,7 +296,7 @@ pub fn bg_black(self : Colored) -> Colored {
 }
 
 ///|
-pub fn default_color(self : Colored) -> Colored {
+pub fn Colored::default_color(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
@@ -293,7 +306,7 @@ pub fn default_color(self : Colored) -> Colored {
 }
 
 ///|
-pub fn default_bg_color(self : Colored) -> Colored {
+pub fn Colored::default_bg_color(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: Some(Default),
@@ -303,71 +316,71 @@ pub fn default_bg_color(self : Colored) -> Colored {
 }
 
 ///|
-pub fn bold(self : Colored) -> Colored {
+pub fn Colored::bold(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
     color: self.color,
-    formats: List::Cons(Bold, self.formats),
+    formats: self.formats.prepend(Bold),
   }
 }
 
 ///|
-pub fn underline(self : Colored) -> Colored {
+pub fn Colored::underline(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
     color: self.color,
-    formats: List::Cons(Underline, self.formats),
+    formats: self.formats.prepend(Underline),
   }
 }
 
 ///|
-pub fn blink(self : Colored) -> Colored {
+pub fn Colored::blink(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
     color: self.color,
-    formats: List::Cons(Blink, self.formats),
+    formats: self.formats.prepend(Blink),
   }
 }
 
 ///|
-pub fn inverse(self : Colored) -> Colored {
+pub fn Colored::inverse(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
     color: self.color,
-    formats: List::Cons(Inverse, self.formats),
+    formats: self.formats.prepend(Inverse),
   }
 }
 
 ///|
-pub fn hidden(self : Colored) -> Colored {
+pub fn Colored::hidden(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
     color: self.color,
-    formats: List::Cons(Hidden, self.formats),
+    formats: self.formats.prepend(Hidden),
   }
 }
 
 ///|
-pub fn strikethrough(self : Colored) -> Colored {
+pub fn Colored::strikethrough(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
     color: self.color,
-    formats: List::Cons(Strikethrough, self.formats),
+    formats: self.formats.prepend(Strikethrough),
   }
 }
 
 ///|
-pub fn italic(self : Colored) -> Colored {
+pub fn Colored::italic(self : Colored) -> Colored {
   {
     str: self.str,
     bg_color: self.bg_color,
     color: self.color,
-    formats: List::Cons(Italic, self.formats),
+    formats: self.formats.prepend(Italic),
   }
 }
